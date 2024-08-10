@@ -1,13 +1,10 @@
 <?php
-// Start the session to save user details
 session_start();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Save user input to session variables
     $_SESSION['index_number'] = $_POST['index_number'];
     $_SESSION['name'] = $_POST['name'];
 
-    // Redirect to Questionnaire.php
     header("Location: Questionnaire.php");
     exit();
 }
