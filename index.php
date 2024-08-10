@@ -1,30 +1,16 @@
 <?php
-$servername = "localhost";
-$username = "root";  // Your MySQL username
-$password = "";      // Your MySQL password
-$dbname = "questionnaire";
+// Start the session to save user details
+session_start();
 
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Save user input to session variables
+    $_SESSION['index_number'] = $_POST['index_number'];
+    $_SESSION['name'] = $_POST['name'];
 
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    // Redirect to Questionnaire.php
+    header("Location: Questionnaire.php");
+    exit();
 }
-
-$sql = "SELECT * FROM questions";
-$result = $conn->query($sql);
-
-$questions = array();
-
-if ($result->num_rows > 0) {
-    while($row = $result->fetch_assoc()) {
-        $questions[] = $row;
-    }
-} else {
-    echo "0 results";
-}
-$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -32,196 +18,133 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shuffled Questionnaire</title>
-    <script>
-        // Pass PHP data to JavaScript
-        const questions = <?php echo json_encode($questions); ?>;
+    <title>Welcome to the Quiz Portal</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
-        // Function to shuffle an array
-        function shuffle(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(120deg, #2C3E50, #4CA1AF);
+            color: #ddd;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
         }
 
-        // Create a doubly linked list node
-        class ListNode {
-            constructor(data) {
-                this.data = data;
-                this.next = null;
-                this.prev = null;
-            }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
         }
 
-        // Create a doubly linked list
-        class DoublyLinkedList {
-            constructor() {
-                this.head = null;
-                this.tail = null;
-                this.size = 0;
-            }
-
-            append(data) {
-                const newNode = new ListNode(data);
-                if (this.size === 0) {
-                    this.head = this.tail = newNode;
-                } else {
-                    this.tail.next = newNode;
-                    newNode.prev = this.tail;
-                    this.tail = newNode;
-                }
-                this.size++;
-            }
-
-            toArray() {
-                let current = this.head;
-                const array = [];
-                while (current) {
-                    array.push(current.data);
-                    current = current.next;
-                }
-                return array;
-            }
+        .header h1 {
+            font-size: 2.8em;
+            color: #fff;
+            margin: 0;
         }
 
-        // Shuffle the questions
-        shuffle(questions);
-
-        // Shuffle answers for each question
-        questions.forEach(question => {
-            let answers = [
-                question.correct_answer,
-                question.wrong_answer_1,
-                question.wrong_answer_2,
-                question.wrong_answer_3
-            ];
-            shuffle(answers);
-            question.answers = answers;
-        });
-
-        // Convert questions array to doubly linked list
-        const questionList = new DoublyLinkedList();
-        questions.forEach(q => questionList.append(q));
-
-        // Rendering logic
-        let currentNode = questionList.head;
-
-        function renderQuestion() {
-            const questionContainer = document.getElementById('questionnaire');
-            questionContainer.innerHTML = '';
-
-            if (currentNode) {
-                const questionElement = document.createElement('p');
-                questionElement.textContent = currentNode.data.question;
-                questionContainer.appendChild(questionElement);
-
-                currentNode.data.answers.forEach(answer => {
-                    const answerElement = document.createElement('div');
-                    const radioInput = document.createElement('input');
-                    radioInput.type = 'radio';
-                    radioInput.name = 'answer';
-                    radioInput.value = answer;
-
-                    // Check if this answer was previously selected
-                    if (currentNode.data.userAnswer === answer) {
-                        radioInput.checked = true;
-                    }
-
-                    answerElement.appendChild(radioInput);
-
-                    const label = document.createElement('label');
-                    label.textContent = answer;
-                    answerElement.appendChild(label);
-
-                    questionContainer.appendChild(answerElement);
-                });
-
-                // Confirm button
-                const confirmBtn = document.createElement('button');
-                confirmBtn.textContent = 'Confirm';
-                confirmBtn.onclick = saveAnswer;
-                questionContainer.appendChild(confirmBtn);
-            }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            gap: 30px;
         }
 
-
-        function saveAnswer() {
-            const selectedAnswer = document.querySelector('input[name="answer"]:checked');
-            if (selectedAnswer) {
-                currentNode.data.userAnswer = selectedAnswer.value;
-            }
+        .section {
+            flex: 1;
+            background: rgba(44, 62, 80, 0.8);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            max-width: 450px;
         }
 
-        function showNextQuestion() {
-            if (currentNode.next) {
-                currentNode = currentNode.next;
-                renderQuestion();
-            }
+        h2 {
+            font-size: 2em;
+            color: #fff;
+            margin-bottom: 20px;
+            text-align: center;
         }
 
-        function showPreviousQuestion() {
-            if (currentNode.prev) {
-                currentNode = currentNode.prev;
-                renderQuestion();
-            }
+        label {
+            display: block;
+            font-size: 1.2em;
+            color: #ccc;
+            margin-bottom: 10px;
         }
 
-        function sortQuestions(criteria) {
-            const sortedArray = questionList.toArray();
-
-            if (criteria === 'Easy to Hard') {
-                sortedArray.sort((a, b) => {
-                    const difficultyOrder = { 'easy': 1, 'medium': 2, 'hard': 3 };
-                    return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
-                });
-            } else if (criteria === 'Large to Small') {
-                sortedArray.sort((a, b) => b.question.length - a.question.length);
-            }
-
-            questionList.head = null;
-            questionList.tail = null;
-            questionList.size = 0;
-
-            sortedArray.forEach(q => questionList.append(q));
-            currentNode = questionList.head;
-            renderQuestion();
+        input[type="text"],input[type="password"] {
+            width: calc(100% - 24px);
+            padding: 12px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            background: #34495E;
+            color: #fff;
+            outline: none;
         }
 
-        function endQuestionnaire() {
-            let correctCount = 0;
-            let current = questionList.head;
-
-            while (current) {
-                if (current.data.userAnswer === current.data.correct_answer) {
-                    correctCount++;
-                }
-                current = current.next;
-            }
-
-            alert(`You answered ${correctCount} questions correctly!`);
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 10px;
+            background-color: #3498DB;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
         }
 
-
-        // Initial render
-        window.onload = function() {
-            renderQuestion();
+        button:hover {
+            background-color: #2980B9;
+            transform: scale(1.05);
         }
-    </script>
+
+        .right-section button {
+            background-color: #1ABC9C;
+        }
+
+        .right-section button:hover {
+            background-color: #16A085;
+        }
+    </style>
 </head>
 <body>
-<h1>Shuffled Questionnaire</h1>
-<div>
-    <button onclick="showPreviousQuestion()">Previous</button>
-    <button onclick="showNextQuestion()">Next</button>
-    <select onchange="sortQuestions(this.value)">
-        <option value="">Sort By</option>
-        <option value="Easy to Hard">Easy to Hard</option>
-        <option value="Large to Small">Large to Small</option>
-    </select>
-    <button onclick="endQuestionnaire()">End Questionnaire</button>
+<div class="header">
+    <h1>Challenge Your Knowledge, Anytime, Anywhere</h1>
 </div>
-<div id="questionnaire"></div>
+<div class="container">
+    <div class="section">
+        <h2>Quiz Portal</h2>
+        <form method="POST" action="">
+            <label for="index_number">Index Number:</label>
+            <input type="text" id="index_number" name="index_number" required>
+
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required>
+
+            <button type="submit">Take The Quiz</button>
+        </form>
+    </div>
+    <div class="section right-section">
+        <h2>Create A Quiz</h2>
+        <form method="POST" action="">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+
+            <button onclick="location.href='Admin.php'">Create A Quiz</button>
+        </form>
+
+    </div>
+</div>
 </body>
 </html>
