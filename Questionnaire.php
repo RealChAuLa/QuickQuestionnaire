@@ -1,4 +1,5 @@
 <?php
+
 $servername = "localhost";
 $username = "root";
 $password = "";
@@ -12,20 +13,60 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$sql = "SELECT * FROM questions";
+// Set the timezone (adjust as needed)
+date_default_timezone_set('UTC');
+
+// Get today's date
+$today = date('Y-m-d');
+
+// Get the latest questionnaire added today
+$sql = "SELECT * FROM questionnaire WHERE date = '$today' ORDER BY questionnaire_id DESC LIMIT 1";
 $result = $conn->query($sql);
 
-$questions = array();
-
 if ($result->num_rows > 0) {
-    while($row = $result->fetch_assoc()) {
-        $questions[] = $row;
+    $questionnaire = $result->fetch_assoc();
+    $questionnaire_id = $questionnaire['questionnaire_id'];
+    $questionnaire_topic = $questionnaire['topic'];
+    $questionnaire_time = $questionnaire['time'];
+
+    // Retrieve questions from the 'questions' table for the selected questionnaire_id
+    $sql = "SELECT * FROM questions WHERE questionnaire_id = $questionnaire_id";
+    $result = $conn->query($sql);
+
+    $questions = array();
+
+    if ($result->num_rows > 0) {
+        while($row = $result->fetch_assoc()) {
+            $questions[] = $row;
+        }
+    } else {
+        echo "No questions found for today's questionnaire.";
+        exit();
+    }
+
+    session_start();
+
+    // Set the countdown timer to the questionnaire's time
+    if (!isset($_SESSION['countdown_start'])) {
+        $_SESSION['countdown_start'] = time();
+    }
+
+    $total_seconds = $questionnaire_time * 60;
+    $elapsed_seconds = time() - $_SESSION['countdown_start'];
+    $remaining_seconds = max(0, $total_seconds - $elapsed_seconds);
+
+    // Reset countdown if it's finished
+    if ($remaining_seconds <= 0) {
+        unset($_SESSION['countdown_start']);
     }
 } else {
-    echo "0 results";
+    echo "No questionnaire for today.";
+    exit();
 }
+
 $conn->close();
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -300,6 +341,9 @@ $conn->close();
                 });
             } else if (criteria === 'Large to Small') {
                 sortedArray.sort((a, b) => b.question.length - a.question.length);
+            } else {
+                // Default option: reshuffle questions
+                shuffle(sortedArray);
             }
 
             questionList.head = null;
@@ -315,6 +359,7 @@ $conn->close();
             let correctCount = 0;
             let current = questionList.head;
 
+            // Calculate the correct answers
             while (current) {
                 if (current.data.userAnswer === current.data.correct_answer) {
                     correctCount++;
@@ -322,18 +367,74 @@ $conn->close();
                 current = current.next;
             }
 
+            // Prepare the form data
+            const formData = new FormData();
+            formData.append('student_id', '<?php echo $_SESSION['index_number']; ?>');
+            formData.append('student_name', '<?php echo $_SESSION['name']; ?>');
+            formData.append('questionnaire_id', '<?php echo $questionnaire_id; ?>');
+            formData.append('correct_count', correctCount);
+            formData.append('time_taken', '<?php echo $questionnaire_time * 60 - $remaining_seconds; ?>');
+
+            // Submit results to the server using fetch
+            fetch('submit_results.php', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.text())
+                .then(data => {
+                    if (data.includes("Error")) {
+                        alert("There was an error submitting your results: " + data);
+                    } else {
+                        alert(data);
+                    }
+                })
+                .catch(error => {
+                    alert("There was a problem submitting your results: " + error.message);
+                });
+
             alert(`You answered ${correctCount} questions correctly!`);
         }
+
+
+
+        function startCountdown() {
+            let timeLeft = <?php echo $remaining_seconds; ?>;
+
+            function updateCountdown() {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                const countdownString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                document.getElementById('countdown').textContent = countdownString;
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    endQuestionnaire();
+                } else {
+                    timeLeft--;
+                }
+            }
+
+            updateCountdown();
+            const countdownInterval = setInterval(updateCountdown, 1000);
+        }
+
+        window.addEventListener('beforeunload', function (e) {
+            // Cancel the event
+            e.preventDefault();
+            // Chrome requires returnValue to be set
+            e.returnValue = '';
+        });
 
 
         // Initial render
         window.onload = function() {
             renderQuestion();
+            startCountdown();
         }
     </script>
 </head>
 <body>
-<h1>Shuffled Questionnaire</h1>
+<h1><?php echo $questionnaire_topic; ?> Questionnaire</h1>
 <div class="top-controls">
     <div>
         <button onclick="showPreviousQuestion()">Previous</button>
@@ -341,6 +442,7 @@ $conn->close();
     </div>
     <select onchange="sortQuestions(this.value)">
         <option value="">Sort By</option>
+        <option value="Default">Default</option>
         <option value="Easy to Hard">Easy to Hard</option>
         <option value="Large to Small">Large to Small</option>
     </select>
@@ -350,6 +452,7 @@ $conn->close();
 </div>
 <div class="bottom-controls">
     <button onclick="endQuestionnaire()">End Questionnaire</button>
+    <div id="countdown"></div>
 </div>
 </body>
 </html>
