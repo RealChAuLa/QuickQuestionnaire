@@ -43,30 +43,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Questionnaire</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+        * {
+            border-radius: 30px;
+        }
+
         body {
-            background: linear-gradient(135deg, #2b2e4a, #e84545);
+            background: -webkit-linear-gradient(180deg, #2C3E50, #4CA1AF, #2C3E50);
             font-family: 'Poppins', sans-serif;
-            color: #fff;
+            color: #ddd;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             height: 100vh;
             margin: 0;
         }
 
         .container {
-            background-color: #1f1b24;
+            background: rgba(44, 62, 80, 0.8);
             padding: 2em;
-            border-radius: 10px;
-            max-width: 600px;
+            border-radius: 30px;
+            max-width: 880px;
             width: 100%;
-            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
+            margin-top: 5vh;
+            margin-bottom: 5vh;
+            box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.3);
         }
 
         h1 {
             text-align: center;
             margin-bottom: 1em;
-            font-size: 2rem;
+            font-size: 2.5rem;
+            color: #fff;
+            font-weight: 600;
         }
 
         .form-group {
@@ -76,43 +86,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         label {
             display: block;
             margin-bottom: 0.5em;
+            font-size: 1.2em;
+            color: #ccc;
+            font-weight: 500;
         }
 
         input[type="text"], input[type="number"], select {
             width: calc(100% - 20px);
-            padding: 0.5em;
+            padding: 0.8em;
             margin-bottom: 1em;
-            border-radius: 5px;
+            border-radius: 10px;
             border: none;
-            background: #2b2e4a;
+            background: #34495E;
             color: #fff;
+            outline: none;
+            font-size: 1.1em;
+            font-weight: 500;
         }
 
         .question-item {
             margin-bottom: 1em;
             padding: 1em;
             border: 1px solid #3a3f58;
-            border-radius: 5px;
+            border-radius: 15px;
             background-color: #2b2e4a;
         }
 
         .question-item input[type="text"] {
             margin-right: 1em;
             width: 70%;
+            font-weight: 500;
         }
 
         .answer-text {
             margin-right: 0.5em;
+            font-weight: 500;
         }
 
         .difficulty {
             margin-top: 0.5em;
-            padding: 0.5em;
+            padding: 0.8em;
             width: 100%;
-            border-radius: 5px;
+            border-radius: 10px;
             background: #3a3f58;
             color: #fff;
+            font-size: 1.1em;
+            font-weight: 500;
             border: none;
+            outline: none;
         }
 
         .button-group {
@@ -123,44 +144,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .button-group button {
             padding: 0.8em 1.2em;
-            border-radius: 5px;
+            border-radius: 10px;
             border: none;
             font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: background 0.3s, transform 0.3s;
+            color: white;
         }
 
         #remove-question {
-            background-color: #e84545;
+            background-color: #E74C3C;
         }
 
         #remove-question:hover {
-            background-color: #d73737;
+            background-color: #C0392B;
+            transform: scale(1.05);
         }
 
         #add-question {
-            background-color: #28a745;
+            background-color: #2ECC71;
         }
 
         #add-question:hover {
-            background-color: #218838;
+            background-color: #27AE60;
+            transform: scale(1.05);
         }
 
         .post-btn {
             margin-top: 2em;
             width: 100%;
             padding: 1em;
-            background-color: #007bff;
-            border-radius: 5px;
+            background-color: #3498DB;
+            border-radius: 10px;
             border: none;
             font-size: 1.2rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: background-color 0.3s, transform 0.3s;
+            color: white;
         }
 
         .post-btn:hover {
-            background-color: #0056b3;
+            background-color: #2980B9;
+            transform: scale(1.05);
         }
+
     </style>
 </head>
 <body>
@@ -270,9 +299,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     const questionList = new SinglyLinkedList();
 
     document.getElementById('add-question').addEventListener('click', () => {
+        // Clone the question template node
         const questionTemplate = document.querySelector('.question-item').cloneNode(true);
+
+        // Clear the values of the input fields in the cloned node
+        questionTemplate.querySelectorAll('input[type="text"]').forEach(input => input.value = '');
+        questionTemplate.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
+        questionTemplate.querySelector('select').selectedIndex = 0;
+
+        // Append the cloned and cleared node to the question section
         document.getElementById('question-section').appendChild(questionTemplate);
     });
+
 
     document.getElementById('remove-question').addEventListener('click', () => {
         const selectedQuestion = document.querySelector('input[name="selected-question"]:checked');
@@ -300,6 +338,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         document.getElementById('questions').value = JSON.stringify(questionList.toArray());
         return true; // Allows form submission
     }
+
+
+
 </script>
 </body>
 </html>
