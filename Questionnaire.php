@@ -1,26 +1,27 @@
 <?php
+global $conn;
+include('DBconnection.php');
+session_start();
+date_default_timezone_set('Asia/Colombo');
+$today = date('Y-m-d');
+// Get the questionnaire_id from POST method
+ // Assuming the questionnaire_id is passed as 'questionnaire_topic'
 
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "questionnaire";
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    if (isset($_POST['index_number']) && isset($_POST['name']) && isset($_POST['questionnaire_id'])) {
+        $_SESSION['index_number'] = $_POST['index_number'];
+        $_SESSION['name'] = $_POST['name'];
+        $_SESSION['questionnaire_id'] = $_POST['questionnaire_id'];
 
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+        header("Location: Questionnaire.php");
+        exit();
+    }
 }
 
-// Set the timezone (adjust as needed)
-date_default_timezone_set('UTC');
+$questionnaire_id = $_SESSION['questionnaire_id'];
 
-// Get today's date
-$today = date('Y-m-d');
-
-// Get the latest questionnaire added today
-$sql = "SELECT * FROM questionnaire WHERE date = '$today' ORDER BY questionnaire_id DESC LIMIT 1";
+// Get the questionnaire details using the questionnaire_id
+$sql = "SELECT * FROM questionnaire WHERE questionnaire_id = '$questionnaire_id'";
 $result = $conn->query($sql);
 
 if ($result->num_rows > 0) {
@@ -44,7 +45,7 @@ if ($result->num_rows > 0) {
         exit();
     }
 
-    session_start();
+
 
     // Set the countdown timer to the questionnaire's time
     if (!isset($_SESSION['countdown_start'])) {

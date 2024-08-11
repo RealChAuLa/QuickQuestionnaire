@@ -1,13 +1,21 @@
 <?php
+global $conn;
 session_start();
+include('DBconnection.php'); // Include your database connection script
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $_SESSION['index_number'] = $_POST['index_number'];
-    $_SESSION['name'] = $_POST['name'];
+// Handle form submission for Quiz Portal
 
-    header("Location: Questionnaire.php");
-    exit();
-}
+
+// Fetch questionnaire topics for current date
+date_default_timezone_set('Asia/Colombo');
+
+$currentDate = date('Y-m-d');
+$query = "SELECT questionnaire_id, topic FROM questionnaire WHERE date = '$currentDate'";
+$result = mysqli_query($conn, $query);
+
+// Fetch all questionnaire topics for Results section
+$resultsQuery = "SELECT questionnaire_id, topic FROM questionnaire WHERE date <= CURDATE()";
+$resultsResult = mysqli_query($conn, $resultsQuery);
 ?>
 
 <!DOCTYPE html>
@@ -65,6 +73,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             color: #fff;
             margin-bottom: 20px;
             text-align: center;
+            margin-top: auto;
         }
 
         label {
@@ -74,7 +83,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             margin-bottom: 10px;
         }
 
-        input[type="text"],input[type="password"] {
+        input[type="text"],input[type="password"],select {
             width: calc(100% - 24px);
             padding: 12px;
             font-size: 1.1em;
@@ -87,12 +96,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         button {
+            font-family: 'Poppins', sans-serif;
             width: 100%;
             padding: 12px;
             font-size: 1.2em;
-            border: none;
+            border: 1px solid white;
             border-radius: 10px;
-            background-color: #3498DB;
+            background-color: rgba(52, 152, 219, 0);
             color: white;
             cursor: pointer;
             transition: background-color 0.3s, transform 0.3s;
@@ -101,15 +111,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         button:hover {
             background-color: #2980B9;
             transform: scale(1.05);
+            border: none;
         }
 
-        .right-section button {
+        #TakeQuiz {
             background-color: #1ABC9C;
+            border: none;
         }
 
-        .right-section button:hover {
-            background-color: #16A085;
+        #TakeQuiz:hover {
+            background-color: #16a042;
         }
+
+
     </style>
 </head>
 <body>
@@ -117,19 +131,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <h1>Challenge Your Knowledge, Anytime, Anywhere</h1>
 </div>
 <div class="container">
+    <div class="section" style="height:320px">
+        <h2>Results</h2>
+        <form method="GET" action="Results.php" style="margin-top: 46px;">
+            <label for="id">Questionnaire Topic</label>
+            <select name="id" required>
+                <option value="">Select</option>
+                <?php while ($row = mysqli_fetch_assoc($resultsResult)): ?>
+                    <option value="<?php echo $row['questionnaire_id']; ?>"><?php echo $row['topic']; ?></option>
+                <?php endwhile; ?>
+            </select>
+            <button type="submit" style="margin-top: 77px;">Show Results</button>
+        </form>
+    </div>
     <div class="section">
         <h2>Quiz Portal</h2>
-        <form method="POST" action="">
+        <form method="POST" action="Questionnaire.php">
+            <label for="questionnaire_id">Questionnaire Topic</label>
+            <select name="questionnaire_id" required>
+                <option value="">Select</option>
+                <?php while ($row = mysqli_fetch_assoc($result)): ?>
+                    <option value="<?php echo $row['questionnaire_id']; ?>"><?php echo $row['topic']; ?></option>
+                <?php endwhile; ?>
+            </select>
+
             <label for="index_number">Index Number:</label>
             <input type="text" id="index_number" name="index_number" required>
 
             <label for="name">Name:</label>
             <input type="text" id="name" name="name" required>
 
-            <button type="submit">Take The Quiz</button>
+            <button id="TakeQuiz" type="submit">Take The Quiz</button>
         </form>
     </div>
-    <div class="section right-section">
+    <div class="section right-section" style="height:320px">
         <h2>Create A Quiz</h2>
         <form method="POST" action="">
             <label for="username">Username:</label>
@@ -138,10 +173,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <label for="password">Password:</label>
             <input type="password" id="password" name="password" required>
 
-            <button onclick="location.href='Admin.php'">Create A Quiz</button>
+            <button type="button" onclick="location.href='Admin.php'">Create A Quiz</button>
         </form>
 
     </div>
 </div>
+
 </body>
 </html>
