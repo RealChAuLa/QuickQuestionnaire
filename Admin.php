@@ -1,24 +1,15 @@
 <?php
-// Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "questionnaire";
-
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+global $conn;
+include('DBconnection.php');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $topic = $_POST['topic'];
     $time = $_POST['time'];
+    $date = $_POST['date'];
     $questions = json_decode($_POST['questions'], true);
 
-    // Insert into questionnaire table
-    $stmt = $conn->prepare("INSERT INTO questionnaire (topic, time, date) VALUES (?, ?, NOW())");
-    $stmt->bind_param("si", $topic, $time);
+    $stmt = $conn->prepare("INSERT INTO questionnaire (topic, time, date) VALUES (?, ?, ?)");
+    $stmt->bind_param("sis", $topic, $time, $date);
     $stmt->execute();
     $questionnaire_id = $stmt->insert_id;
     $stmt->close();
@@ -91,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 500;
         }
 
-        input[type="text"], input[type="number"], select {
+        input[type="text"], input[type="number"],input[type="date"], select {
             width: calc(100% - 20px);
             padding: 0.8em;
             margin-bottom: 1em;
@@ -114,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .question-item input[type="text"] {
             margin-right: 1em;
-            width: 70%;
+            width: 90%;
             font-weight: 500;
         }
 
@@ -204,6 +195,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="form-group">
             <label for="time">Time (in minutes)</label>
             <input type="number" id="time" name="time" min="1" value="10" required>
+        </div>
+
+        <div class="form-group">
+            <label for="date">Release Date</label>
+            <input type="date" id="date" name="date" required>
         </div>
 
         <div id="question-section">
@@ -307,10 +303,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         questionTemplate.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
         questionTemplate.querySelector('select').selectedIndex = 0;
 
+        // Get the current question data from the inputs
+        const currentQuestionData = {
+            question: questionTemplate.querySelector('.question-text').value,
+            correct_answer: questionTemplate.querySelectorAll('.answer-text')[0].value,
+            wrong_answer_1: questionTemplate.querySelectorAll('.answer-text')[1].value,
+            wrong_answer_2: questionTemplate.querySelectorAll('.answer-text')[2].value,
+            wrong_answer_3: questionTemplate.querySelectorAll('.answer-text')[3].value,
+            difficulty: questionTemplate.querySelector('.difficulty').value
+        };
+
+        // Add the current question to the singly linked list
+        questionList.append(currentQuestionData);
+
         // Append the cloned and cleared node to the question section
         document.getElementById('question-section').appendChild(questionTemplate);
     });
-
 
     document.getElementById('remove-question').addEventListener('click', () => {
         const selectedQuestion = document.querySelector('input[name="selected-question"]:checked');
@@ -332,15 +340,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 wrong_answer_3: item.querySelectorAll('.answer-text')[3].value,
                 difficulty: item.querySelector('.difficulty').value
             };
-            questions.push(questionData);
             questionList.append(questionData);
         });
+
+        // Convert the linked list to an array and store it in a hidden input field
         document.getElementById('questions').value = JSON.stringify(questionList.toArray());
         return true; // Allows form submission
     }
-
-
-
 </script>
+
 </body>
 </html>
