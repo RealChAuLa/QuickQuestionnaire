@@ -1,7 +1,7 @@
 <?php
 global $conn;
 session_start();
-include('DBconnection.php'); // Include your database connection script
+include('DBconnection.php');
 
 if (isset($_GET['id'])) {
     $questionnaire_id = $_GET['id'];
@@ -17,6 +17,7 @@ if (isset($_GET['id'])) {
     }
 } else {
     echo "<p>No questionnaire selected.</p>";
+    header("Location:index.php");
     exit();
 }
 ?>

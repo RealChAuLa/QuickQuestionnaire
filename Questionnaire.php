@@ -4,23 +4,35 @@ include('DBconnection.php');
 session_start();
 date_default_timezone_set('Asia/Colombo');
 $today = date('Y-m-d');
-// Get the questionnaire_id from POST method
- // Assuming the questionnaire_id is passed as 'questionnaire_topic'
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    if (isset($_POST['index_number']) && isset($_POST['name']) && isset($_POST['questionnaire_id'])) {
+    if (
+        isset($_POST['index_number']) && !empty($_POST['index_number']) &&
+        isset($_POST['name']) && !empty($_POST['name']) &&
+        isset($_POST['questionnaire_id']) && !empty($_POST['questionnaire_id'])
+    ) {
         $_SESSION['index_number'] = $_POST['index_number'];
         $_SESSION['name'] = $_POST['name'];
         $_SESSION['questionnaire_id'] = $_POST['questionnaire_id'];
+    } else {
+        $_SESSION['index_number'] = "";
+        $_SESSION['name'] = "";
+        $_SESSION['questionnaire_id'] = "";
 
-        header("Location: Questionnaire.php");
+        header("Location: index.php");
         exit();
     }
+} else {
+    $_SESSION['index_number'] = "";
+    $_SESSION['name'] = "";
+    $_SESSION['questionnaire_id'] = "";
+
+    header("Location: index.php");
+    exit();
 }
 
 $questionnaire_id = $_SESSION['questionnaire_id'];
 
-// Get the questionnaire details using the questionnaire_id
 $sql = "SELECT * FROM questionnaire WHERE questionnaire_id = '$questionnaire_id'";
 $result = $conn->query($sql);
 
@@ -30,7 +42,6 @@ if ($result->num_rows > 0) {
     $questionnaire_topic = $questionnaire['topic'];
     $questionnaire_time = $questionnaire['time'];
 
-    // Retrieve questions from the 'questions' table for the selected questionnaire_id
     $sql = "SELECT * FROM questions WHERE questionnaire_id = $questionnaire_id";
     $result = $conn->query($sql);
 
@@ -45,18 +56,15 @@ if ($result->num_rows > 0) {
         exit();
     }
 
-
-
-    // Set the countdown timer to the questionnaire's time
     if (!isset($_SESSION['countdown_start'])) {
         $_SESSION['countdown_start'] = time();
     }
 
     $total_seconds = $questionnaire_time * 60;
     $elapsed_seconds = time() - $_SESSION['countdown_start'];
+    $time_spent = sprintf("%02d:%02d:%02d", floor($elapsed_seconds / 3600), floor(($elapsed_seconds % 3600) / 60), $elapsed_seconds % 60);
     $remaining_seconds = max(0, $total_seconds - $elapsed_seconds);
 
-    // Reset countdown if it's finished
     if ($remaining_seconds <= 0) {
         unset($_SESSION['countdown_start']);
     }
@@ -64,10 +72,8 @@ if ($result->num_rows > 0) {
     echo "No questionnaire for today.";
     exit();
 }
-
 $conn->close();
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -197,10 +203,8 @@ $conn->close();
         }
     </style>
     <script>
-        // Pass PHP data to JavaScript
         const questions = <?php echo json_encode($questions); ?>;
 
-        // Function to shuffle an array
         function shuffle(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -209,7 +213,6 @@ $conn->close();
             return array;
         }
 
-        // Create a doubly linked list node
         class ListNode {
             constructor(data) {
                 this.data = data;
@@ -218,7 +221,6 @@ $conn->close();
             }
         }
 
-        // Create a doubly linked list
         class DoublyLinkedList {
             constructor() {
                 this.head = null;
@@ -249,10 +251,8 @@ $conn->close();
             }
         }
 
-        // Shuffle the questions
         shuffle(questions);
 
-        // Shuffle answers for each question
         questions.forEach(question => {
             let answers = [
                 question.correct_answer,
@@ -264,11 +264,9 @@ $conn->close();
             question.answers = answers;
         });
 
-        // Convert questions array to doubly linked list
         const questionList = new DoublyLinkedList();
         questions.forEach(q => questionList.append(q));
 
-        // Rendering logic
         let currentNode = questionList.head;
 
         function renderQuestion() {
@@ -310,7 +308,6 @@ $conn->close();
             }
         }
 
-
         function saveAnswer() {
             const selectedAnswer = document.querySelector('input[name="answer"]:checked');
             if (selectedAnswer) {
@@ -343,7 +340,6 @@ $conn->close();
             } else if (criteria === 'Large to Small') {
                 sortedArray.sort((a, b) => b.question.length - a.question.length);
             } else {
-                // Default option: reshuffle questions
                 shuffle(sortedArray);
             }
 
@@ -360,7 +356,6 @@ $conn->close();
             let correctCount = 0;
             let current = questionList.head;
 
-            // Calculate the correct answers
             while (current) {
                 if (current.data.userAnswer === current.data.correct_answer) {
                     correctCount++;
@@ -368,35 +363,27 @@ $conn->close();
                 current = current.next;
             }
 
-            // Prepare the form data
             const formData = new FormData();
             formData.append('student_id', '<?php echo $_SESSION['index_number']; ?>');
             formData.append('student_name', '<?php echo $_SESSION['name']; ?>');
             formData.append('questionnaire_id', '<?php echo $questionnaire_id; ?>');
             formData.append('correct_count', correctCount);
-            formData.append('time_taken', '<?php echo $questionnaire_time * 60 - $remaining_seconds; ?>');
+            formData.append('time_taken', '<?php echo $time_spent; ?>');
 
-            // Submit results to the server using fetch
             fetch('submit_results.php', {
                 method: 'POST',
                 body: formData
             })
-                .then(response => response.text())
+                .then(response => response.json()) // Parse response as JSON
                 .then(data => {
-                    if (data.includes("Error")) {
-                        alert("There was an error submitting your results: " + data);
+                    if (data.status === 'redirect') {
+                        window.location.href = data.url;
                     } else {
-                        alert(data);
+                        console.log(data);
                     }
                 })
-                .catch(error => {
-                    alert("There was a problem submitting your results: " + error.message);
-                });
-
-            alert(`You answered ${correctCount} questions correctly!`);
+                .catch(error => console.error('Error:', error));
         }
-
-
 
         function startCountdown() {
             let timeLeft = <?php echo $remaining_seconds; ?>;
@@ -414,20 +401,10 @@ $conn->close();
                     timeLeft--;
                 }
             }
-
             updateCountdown();
             const countdownInterval = setInterval(updateCountdown, 1000);
         }
 
-        window.addEventListener('beforeunload', function (e) {
-            // Cancel the event
-            e.preventDefault();
-            // Chrome requires returnValue to be set
-            e.returnValue = '';
-        });
-
-
-        // Initial render
         window.onload = function() {
             renderQuestion();
             startCountdown();
@@ -449,7 +426,7 @@ $conn->close();
     </select>
 </div>
 <div id="questionnaire">
-    <!-- The question and answer options will be dynamically inserted here -->
+    <!-- dynamically adding The question and answer options -->
 </div>
 <div class="bottom-controls">
     <button onclick="endQuestionnaire()">End Questionnaire</button>

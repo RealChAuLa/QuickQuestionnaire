@@ -1,21 +1,18 @@
 <?php
 global $conn;
 session_start();
-include('DBconnection.php'); // Include your database connection script
+include('DBconnection.php');
 
-// Handle form submission for Quiz Portal
-
-
-// Fetch questionnaire topics for current date
 date_default_timezone_set('Asia/Colombo');
 
 $currentDate = date('Y-m-d');
 $query = "SELECT questionnaire_id, topic FROM questionnaire WHERE date = '$currentDate'";
 $result = mysqli_query($conn, $query);
 
-// Fetch all questionnaire topics for Results section
 $resultsQuery = "SELECT questionnaire_id, topic FROM questionnaire WHERE date <= CURDATE()";
 $resultsResult = mysqli_query($conn, $resultsQuery);
+
+
 ?>
 
 <!DOCTYPE html>
